@@ -1,0 +1,12 @@
+type Query { # obtienen información
+  hello: String!
+  helloWithName(name: String): String!
+  peopleNumber: Int!
+  booksList: Result!  # [Book!]! # una lista de libros donde no permite datos nulos
+  peopleList: Result!
+  #elementos seleccionados
+  getBook(id: ID!): Result! # Book! #el parametro de entrada y el valor de salida son obligatorios
+  getPerson(id: ID!): Result! # se cambia el tipo de dato a Result para que trabaje con el mismo tipo de dato
+  # que Book, como result devuelve datos de tipo union, el resultado puede ser Book o People dependiendo de lo 
+  # que se consulte
+}

@@ -1,0 +1,8 @@
+#definir resutlado con mas de detalle
+
+type Result {
+  status: Boolean!
+  message: String!
+  list: [Data!] #Los campos list y item como estan tipados con un dato de tipo union, pueden devolver resultados de type Book o type People
+  item: Data
+}

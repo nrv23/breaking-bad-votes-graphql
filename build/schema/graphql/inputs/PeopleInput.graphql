@@ -1,0 +1,14 @@
+
+ input PeopleInput {
+
+    id: ID
+    name: String!
+    email: String!
+    website: String
+    github: String
+    twitter: String
+    books: [String!]!
+    #Libros que ha comprado la persona
+    #booksBuy: [Book] # no va ser un dato que devuelve un valor requerido porque puede ser que una persona no ha comprado ningun libro
+ }
+

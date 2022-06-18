@@ -1,0 +1,6 @@
+
+
+enum StatusBookEnum { #establecer una lista de valores posibles para el estado del libro
+  PUBLISH,
+  UNPUBLISH
+ }

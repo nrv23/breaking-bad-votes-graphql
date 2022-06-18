@@ -1,0 +1,13 @@
+input BookInput { 
+
+  id:ID
+  title: String!
+  isbn: String!
+  pageCount: Int!
+  publishedDate: String
+  thumbnailUrl: String
+  shortDescription: String
+  longDescription: String
+  status: StatusBookEnum = UNPUBLISH # estabelcer un valor como tipo enum y dejarle un valor por defecto
+  authors: [String!]! #indica que va devolver un array de de tipo string donde no pueden existir datos nulos
+ }

@@ -1,0 +1,6 @@
+type Query { # obtienen información
+  characters:  [Character!]! # valores dentro del array de tipo Character no nulos y la respuesta no puede ser nula
+
+  character(id: ID!): Character # Puede ser que no devuelva nada
+}
+

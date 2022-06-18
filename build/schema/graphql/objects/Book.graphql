@@ -1,0 +1,15 @@
+#informacion de los libros
+type Book {
+  id: ID
+  title: String!
+  isbn: String!
+  pageCount: Int!
+  publishedDate: String
+  thumbnailUrl: String
+  shortDescription: String
+  longDescription: String
+  status: String!
+  authors: [String!]! #indica que va devolver un array de de tipo string donde no pueden existir datos nulos
+
+  byPeopleBuy: [People]
+}

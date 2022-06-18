@@ -1,0 +1,10 @@
+type Character {
+  id: ID!
+  name: String!
+  actor: String!
+  description: String!
+  total_episodes: Int!
+  photo: String!
+  votes: Int!
+  url: String!
+}

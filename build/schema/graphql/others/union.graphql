@@ -1,0 +1,5 @@
+
+
+#tipo de dato union en graphql permite tipar de varias formas posibles un dato
+
+union Data = Book | People

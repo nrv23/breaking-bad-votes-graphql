@@ -1,0 +1,22 @@
+{ // fichero para acticar el eslint
+    "root": true,
+    "parser": "@typescript-eslint/parser",
+    "plugins": [
+      "@typescript-eslint"
+    ],
+    "extends": [
+      "eslint:recommended",
+      "plugin:@typescript-eslint/eslint-recommended",
+      "plugin:@typescript-eslint/recommended"
+    ],
+    "rules": {
+      "quotes": [0,"double"], // el numero indica la severidad: 0 apagado, 1 advertencia, 2 error
+      "semi": ["error","always"],
+      "@typescript-eslint/no-explicit-any": ["error",{
+        "fixToUnknown": true // cambiar el tipo any por el unkown y no permitir el tipo any en el codigo
+      }],
+      "curly": 0 // esta propiedad indica si se fuerza a poner llaves en todas las sentencias de control y ciclos
+    }
+  }
+  
+  // se puede agregar la bandera --fix al comando de npx lint para solucionar algunos errores de forma automática

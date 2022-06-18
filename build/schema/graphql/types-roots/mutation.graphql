@@ -1,0 +1,13 @@
+type Mutation { # estos tipos de query, editan la informacion
+
+  addBook(book: BookInput!): Result!
+  updateBook(book: BookInput!): Result! # los parametros de tipo personalizados como Book o People no se puede pasar directamente
+  # Se usa el tipo de variable input
+  deleteBook(id: ID!): Result!
+
+
+  addPerson(person: PeopleInput!): Result!
+  updatePerson(person: PeopleInput!): Result! # los parametros de tipo personalizados como Book o People no se puede pasar directamente
+  # Se usa el tipo de variable input
+  deletePerson(id: ID!): Result!
+}
