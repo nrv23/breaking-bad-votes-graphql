@@ -5,7 +5,7 @@ import express, { Application } from "express"; //es el tipo de aplicacion para 
 import { GraphQLSchema } from "graphql";
 import { Server, createServer } from "http";
 // configurar la profundidad de las consultas en graphql para evitar consultas maliciosas o que boten el servidor
-import depthLimit from "graphql-depth-limit";
+//import depthLimit from "graphql-depth-limit";
 import result from "./config/environments";
 import Database from "./config/database";
 

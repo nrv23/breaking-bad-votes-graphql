@@ -11,5 +11,12 @@ export async function getCharacters(db: Db) {
 }
 
 export async function getCharacter(id: String, db: Db) {
-  return await db.collection("characters").findOne({ id });
+  return await db.collection(COLLECTIONS.CHARACTERS).findOne({ id });
+}
+
+
+export async function getCharacterVotes(id: String, db: Db) { 
+
+  return (await db.collection(COLLECTIONS.VOTES).find({ character: id }).toArray()).length;
+
 }

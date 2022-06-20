@@ -4,3 +4,4 @@ type Query { # obtienen información
   character(id: ID!): Character # Puede ser que no devuelva nada
 }
 
+# @skip(if: $skip) para omitir valores de salida
