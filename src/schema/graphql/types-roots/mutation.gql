@@ -1,0 +1,10 @@
+type Mutation {
+
+    addVote(character: ID!): ResultOperation!
+    updateVote(character: ID!, idVote: ID!): ResultOperation!
+    # para cambiar el voto a otro actor
+
+    deleteVote(id: ID!): ResultOperation!
+
+
+}

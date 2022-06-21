@@ -1,0 +1,6 @@
+type ResultOperation {
+
+    status: Boolean!
+    message: String!
+    characters: [Character!]
+}

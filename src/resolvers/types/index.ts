@@ -19,3 +19,5 @@ const typeResolvers: IResolvers =  {
 
 export default typeResolvers;
 
+
+// hacer declaraciones hoy, mayo, abril y junio
