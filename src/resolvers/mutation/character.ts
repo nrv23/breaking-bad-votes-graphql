@@ -1,3 +1,4 @@
+import { PubSub } from 'graphql-subscriptions';
 import { Datetime } from "./../../lib/datetime";
 import { Db } from "mongodb";
 import { IResolvers } from "@graphql-tools/utils";
@@ -10,14 +11,16 @@ import {
   getVote,
   updateVote,
 } from "../../lib/database-operations";
+import { CHANGE_VOTES } from "../../config/constants";
 
 const mutationCharacterRolvers: IResolvers = {
   Mutation: {
     addVote: async (
       _: void,
       args: { character: string },
-      context: { db: Db }
+      context: { db: Db, pubsub: PubSub }
     ) => {
+      console.log({pubsub: context.pubsub});
       try {
         const exist = await getCharacter(args.character, context.db);
 
@@ -45,6 +48,10 @@ const mutationCharacterRolvers: IResolvers = {
             message: "No se pudo agregar el voto",
           };
         }
+
+        context.pubsub.publish(CHANGE_VOTES, {
+          changeVotes: await getCharacters(context.db),
+        });
 
         return {
           status: true,
@@ -123,7 +130,6 @@ const mutationCharacterRolvers: IResolvers = {
 
         const { deletedCount } = await deleteVote(args.id, context.db);
 
-
         if (deletedCount === 0) {
           return {
             status: false,
@@ -133,10 +139,10 @@ const mutationCharacterRolvers: IResolvers = {
           return {
             status: true,
             message: "Voto eliminado con éxito",
-           // characters: [await getCharacters(context.db)], // meter en un array el resultado de una consulta
+            // characters: [await getCharacters(context.db)], // meter en un array el resultado de una consulta
           };
         }
-        console.log()
+        console.log();
       } catch (error) {
         return {
           status: false,
