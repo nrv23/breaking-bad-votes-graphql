@@ -1,3 +1,5 @@
+import { makeExecutableSchema } from '@graphql-tools/schema';
+import { IResolvers } from "@graphql-tools/utils";
 import { ApolloServer } from "apollo-server-express";
 import compression from "compression";
 import express, { Application } from "express"; //es el tipo de aplicacion para express
@@ -7,15 +9,28 @@ import { Server, createServer } from "http";
 // configurar la profundidad de las consultas en graphql para evitar consultas maliciosas o que boten el servidor
 //import depthLimit from "graphql-depth-limit";
 import result from "./config/environments";
-import Database from "./config/database";
+
 //import { SubscriptionServer } from "subscriptions-transport-ws";
-import {WebSocketServer} from "ws";
-
-
+import { WebSocketServer } from "ws";
 // work with commonjs and esm
-
 import { useServer } from "graphql-ws/lib/use/ws";
 import { ApolloServerPluginDrainHttpServer } from "apollo-server-core";
+import { CHANGE_VOTES, PHOTO_URL } from "./config/constants";
+import * as obj from './schema';
+import {
+  addVote,
+  deleteVote,
+  getCharacter,
+  getCharacters,
+  getCharacterVotes,
+  getLastInsertId,
+  getVote,
+  updateVote,
+} from "./lib/database-operations";
+import { Db } from "mongodb";
+import { Datetime } from "./lib/datetime";
+import { Character } from "./interfaces/character";
+
 class GraphQLServer {
   //propiedades
 
@@ -29,7 +44,7 @@ class GraphQLServer {
       // si el valor esqyema esta indefinido
       throw new Error("EL valor del schema de graphql es un valor requerido");
     }
-    this.schema = schema;
+    this.schema = makeExecutableSchema({typeDefs: obj.default.typeDefs, resolvers: this.loadResolversSchema()});
     this.init();
   }
 
@@ -57,21 +72,19 @@ class GraphQLServer {
 
   private async configApolloServerExpress() {
     try {
-      const database = new Database();
-      const db = await database.init();
 
       const context: any = async () => {
         return {
-          db,
-          pubsub: this.pubsub
+  
+          pubsub: this.pubsub,
         };
       };
 
       //const WebSocketServer = WebSocket.Server || WSWebSocketServer;
-     
+
       const wsServer = new WebSocketServer({
         server: this.httpServer,
-        path: "/graphql"
+        path: "/graphql",
       });
 
       // Save the returned server's info so we can shutdown this server later
@@ -79,9 +92,8 @@ class GraphQLServer {
 
       const apolloServer = new ApolloServer({
         schema: this.schema,
-        introspection: true,
         context,
-        cache: "bounded",
+        introspection: true,
         plugins: [
           // Proper shutdown for the HTTP server.
           ApolloServerPluginDrainHttpServer({ httpServer: this.httpServer }),
@@ -102,7 +114,7 @@ class GraphQLServer {
       // por ejemplo en el caso de la api, tiene 3 niveles, y podria limitar incluso al nivel 1 o 2. Limitando el
       // nivel de profundidad se evita que consulte niveles que no existen en la api
 
-      await apolloServer.start()
+      await apolloServer.start();
 
       // configurar el servidor apollo server
 
@@ -115,10 +127,9 @@ class GraphQLServer {
       //resolvers
       //app.use(cors());
 
-      wsServer.on("connection",() => {
+      wsServer.on("connection", () => {
         console.log("conectado");
-      })
-
+      });
 
       // hab9litar el servidor para las suscripciones
     } catch (error) {
@@ -143,6 +154,185 @@ class GraphQLServer {
           generar el archivo con opciones default tsconfig.json npx tsc --init 
       */
   }
+
+  private loadResolversSchema = () => {
+    const resolvers: IResolvers = {
+      Query: {
+        character: async (
+          _: void,
+          args: { id: String },
+          context: {}
+        ) => {
+          return await getCharacter(args.id);
+        },
+        characters: async (_: void, __: unknown, context: {  }) => {
+          return await getCharacters();
+        },
+      },
+      Mutation: {
+        addVote: async (
+          _: void,
+          args: { character: string },
+          context: {  pubsub: PubSub }
+        ) => {
+          try {
+            const exist = await getCharacter(args.character);
+
+            if (!exist) {
+              return {
+                status: false,
+                message: "No existe el personaje",
+              };
+            }
+
+            const [index] = await getLastInsertId();
+
+            const response = await addVote(
+              {
+                character: args.character,
+                id: !index.id ? "1" : (+index.id + 1).toString(),
+                createdAt: new Datetime().getCurrentDateTime(),
+              }
+            );
+
+            if (!response) {
+              return {
+                status: false,
+                message: "No se pudo agregar el voto",
+              };
+            }
+
+            context.pubsub.publish(CHANGE_VOTES, {
+              changeVotes: await getCharacters(),
+            });
+
+            return {
+              status: true,
+              message: "Se ha agregado el voto con éxito",
+              characters: [await getCharacter(args.character)], // meter en un array el resultado de una consulta
+            };
+          } catch (error) {
+            console.log({ error });
+            return {
+              status: false,
+              message: "Hubo un error",
+            };
+          }
+        },
+        updateVote: async (
+          _: void,
+          args: { character: string; idVote: string },
+          context: {}
+        ) => {
+          try {
+            const characterExists = await getCharacter(
+              args.character,
+             
+            );
+
+            if (!characterExists) {
+              return {
+                status: false,
+                message: "No existe el personaje",
+              };
+            }
+
+            const voteExists = await getVote(args.idVote);
+
+            if (!voteExists) {
+              return {
+                status: false,
+                message: "No hay un voto asignado con ese id",
+              };
+            }
+
+            // actualizar el voto
+
+            const { modifiedCount } = await updateVote(
+              args.idVote,
+              args.character
+            );
+
+            if (modifiedCount === 0) {
+              return {
+                status: false,
+                message: "No se pudo actualizar el voto",
+              };
+            } else {
+              return {
+                status: true,
+                message: "Voto actualizado con éxito",
+                characters: [await getCharacter(args.character)], // meter en un array el resultado de una consulta
+              };
+            }
+          } catch (error) {
+            return {
+              status: false,
+              message: "Hubo un error",
+            };
+          }
+        },
+
+        deleteVote: async (
+          _: void,
+          args: { id: string },
+          context: {  }
+        ) => {
+          try {
+            const voteExists = await getVote(args.id);
+
+            if (!voteExists) {
+              return {
+                status: false,
+                message: "No hay un voto asignado con ese id",
+              };
+            }
+
+            const { deletedCount } = await deleteVote(args.id);
+
+            if (deletedCount === 0) {
+              return {
+                status: false,
+                message: "No se pudo eliminar el voto",
+              };
+            } else {
+              return {
+                status: true,
+                message: "Voto eliminado con éxito",
+                // characters: [await getCharacters(context.db)], // meter en un array el resultado de una consulta
+              };
+            }
+            console.log();
+          } catch (error) {
+            return {
+              status: false,
+              message: "Hubo un error",
+            };
+          }
+        },
+      },
+      Subscription: {
+        changeVotes: {
+          subscribe: () => {
+            //parent, args,context devuelve undefined
+            return this.pubsub.asyncIterator(CHANGE_VOTES);
+          },
+        },
+      },
+      Character: {
+        // esto va leer la respuesta que sea de tipo Character y añadirle a la propiedad votes un valor
+        // los types podrian funcionar como un interceptor.
+        votes: async (parent: Character, __: unknown, context: {  }) => {
+          
+
+          return await getCharacterVotes(parent.id);
+        },
+        photo: (parent: Character) => PHOTO_URL.concat(parent.photo),
+      },
+    };
+
+    return resolvers;
+  };
 
   listen(callback: (port: number) => void): void {
     this.httpServer.listen(this.DEFAULT_PORT, () => {

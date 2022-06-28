@@ -15,6 +15,9 @@ const typeDefs = mergeTypeDefs(typesArray);
 const schema: GraphQLSchema = makeExecutableSchema({
   typeDefs,
   resolvers,
-});
+}); 
 
-export default schema;
+export default { 
+  typeDefs,
+  schema
+};

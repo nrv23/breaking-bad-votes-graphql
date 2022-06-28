@@ -4,13 +4,13 @@ import { getCharacter,getCharacters } from '../../lib/database-operations';
 
 const characterQueryResolvers : IResolvers  = {
     Query : {
-        character: async(_: void, args: { id: String}, context: {db:Db}) => {
+        character: async(_: void, args: { id: String}, context: {}) => {
 
-            return await getCharacter(args.id,context.db);
+            return await getCharacter(args.id);
         },
-        characters: async(_: void, __:unknown, context: {db:Db}) => {
+        characters: async(_: void, __:unknown, context: {}) => {
 
-            return await getCharacters(context.db);
+            return await getCharacters();
         }
     }
 }

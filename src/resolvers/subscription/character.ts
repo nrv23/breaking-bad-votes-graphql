@@ -1,14 +1,17 @@
-import { CHANGE_VOTES } from './../../config/constants';
-import { PubSub } from 'graphql-subscriptions';
+import { CHANGE_VOTES } from "./../../config/constants";
+import { PubSub } from "graphql-subscriptions";
 import { IResolvers } from "@graphql-tools/utils";
-import { getCharacters } from "../../lib/database-operations";
+
 
 const pubsub = new PubSub();
 
 const subscriptionResolvers: IResolvers = {
   Subscription: {
     changeVotes: {
-      subscribe: () => pubsub.asyncIterator(CHANGE_VOTES)
+      subscribe: () => { //parent, args,context devuelve undefined
+      
+        return pubsub.asyncIterator(CHANGE_VOTES);
+      },
     },
   },
 };

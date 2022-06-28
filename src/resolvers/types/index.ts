@@ -8,9 +8,9 @@ const typeResolvers: IResolvers =  {
 
     Character:  { // esto va leer la respuesta que sea de tipo Character y añadirle a la propiedad votes un valor 
         // los types podrian funcionar como un interceptor.
-        votes: async (parent: Character  , __:unknown , args: {db : Db}) => {
+        votes: async (parent: Character  , __:unknown , context: {}) => {
 
-            return await getCharacterVotes(parent.id, args.db);
+            return await getCharacterVotes(parent.id);
         },
         photo: (parent: Character) => PHOTO_URL.concat(parent.photo)
     }

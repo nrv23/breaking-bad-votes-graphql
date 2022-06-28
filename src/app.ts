@@ -1,7 +1,7 @@
 import GraphQLServer from "./server";
-import schema from "./schema";
+import  * as obj from "./schema";
 
-const graphqlServer = new GraphQLServer(schema);
+const graphqlServer = new GraphQLServer(obj.default.schema);
 
 graphqlServer.listen((port: number) => {
   console.log(`Servidor corriendo en puerto ${port}`);

@@ -18,11 +18,11 @@ const mutationCharacterRolvers: IResolvers = {
     addVote: async (
       _: void,
       args: { character: string },
-      context: { db: Db, pubsub: PubSub }
+      context: {  pubsub: PubSub }
     ) => {
-      console.log({pubsub: context.pubsub});
+      
       try {
-        const exist = await getCharacter(args.character, context.db);
+        const exist = await getCharacter(args.character, );
 
         if (!exist) {
           return {
@@ -31,15 +31,15 @@ const mutationCharacterRolvers: IResolvers = {
           };
         }
 
-        const [index] = await getLastInsertId(context.db);
+        const [index] = await getLastInsertId();
 
         const response = await addVote(
           {
             character: args.character,
             id: !index.id ? "1" : (+index.id + 1).toString(),
             createdAt: new Datetime().getCurrentDateTime(),
-          },
-          context.db
+          }
+          
         );
 
         if (!response) {
@@ -50,13 +50,13 @@ const mutationCharacterRolvers: IResolvers = {
         }
 
         context.pubsub.publish(CHANGE_VOTES, {
-          changeVotes: await getCharacters(context.db),
+          changeVotes: await getCharacters(),
         });
 
         return {
           status: true,
           message: "Se ha agregado el voto con éxito",
-          characters: [await getCharacter(args.character, context.db)], // meter en un array el resultado de una consulta
+          characters: [await getCharacter(args.character )], // meter en un array el resultado de una consulta
         };
       } catch (error) {
         return {
@@ -68,10 +68,10 @@ const mutationCharacterRolvers: IResolvers = {
     updateVote: async (
       _: void,
       args: { character: string; idVote: string },
-      context: { db: Db }
+      context: {  }
     ) => {
       try {
-        const characterExists = await getCharacter(args.character, context.db);
+        const characterExists = await getCharacter(args.character );
 
         if (!characterExists) {
           return {
@@ -80,7 +80,7 @@ const mutationCharacterRolvers: IResolvers = {
           };
         }
 
-        const voteExists = await getVote(args.idVote, context.db);
+        const voteExists = await getVote(args.idVote);
 
         if (!voteExists) {
           return {
@@ -93,8 +93,7 @@ const mutationCharacterRolvers: IResolvers = {
 
         const { modifiedCount } = await updateVote(
           args.idVote,
-          args.character,
-          context.db
+          args.character
         );
 
         if (modifiedCount === 0) {
@@ -106,7 +105,7 @@ const mutationCharacterRolvers: IResolvers = {
           return {
             status: true,
             message: "Voto actualizado con éxito",
-            characters: [await getCharacter(args.character, context.db)], // meter en un array el resultado de una consulta
+            characters: [await getCharacter(args.character)], // meter en un array el resultado de una consulta
           };
         }
       } catch (error) {
@@ -117,9 +116,9 @@ const mutationCharacterRolvers: IResolvers = {
       }
     },
 
-    deleteVote: async (_: void, args: { id: string }, context: { db: Db }) => {
+    deleteVote: async (_: void, args: { id: string }, context: { }) => {
       try {
-        const voteExists = await getVote(args.id, context.db);
+        const voteExists = await getVote(args.id);
 
         if (!voteExists) {
           return {
@@ -128,7 +127,7 @@ const mutationCharacterRolvers: IResolvers = {
           };
         }
 
-        const { deletedCount } = await deleteVote(args.id, context.db);
+        const { deletedCount } = await deleteVote(args.id);
 
         if (deletedCount === 0) {
           return {
