@@ -1,3 +1,4 @@
 type Subscription {
   changeVotes: [Character!]!
+  changeVote(id: ID!):Character! # filtrar suscripcion por id de actor. Devuelve solamente la informacion del id de actor que se esta filtrando
 }

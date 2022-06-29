@@ -1,4 +1,4 @@
-import { PubSub } from 'graphql-subscriptions';
+import { PubSub } from "graphql-subscriptions";
 import { Datetime } from "./../../lib/datetime";
 import { Db } from "mongodb";
 import { IResolvers } from "@graphql-tools/utils";
@@ -11,18 +11,17 @@ import {
   getVote,
   updateVote,
 } from "../../lib/database-operations";
-import { CHANGE_VOTES } from "../../config/constants";
+import { CHANGE_VOTE, CHANGE_VOTES } from "../../config/constants";
 
 const mutationCharacterRolvers: IResolvers = {
   Mutation: {
     addVote: async (
       _: void,
       args: { character: string },
-      context: {  pubsub: PubSub }
+      context: { pubsub: PubSub }
     ) => {
-      
       try {
-        const exist = await getCharacter(args.character, );
+        const exist = await getCharacter(args.character);
 
         if (!exist) {
           return {
@@ -32,15 +31,12 @@ const mutationCharacterRolvers: IResolvers = {
         }
 
         const [index] = await getLastInsertId();
-
-        const response = await addVote(
-          {
-            character: args.character,
-            id: !index.id ? "1" : (+index.id + 1).toString(),
-            createdAt: new Datetime().getCurrentDateTime(),
-          }
-          
-        );
+        const id = !index.id ? "1" : (+index.id + 1).toString();
+        const response = await addVote({
+          character: args.character,
+          id,
+          createdAt: new Datetime().getCurrentDateTime(),
+        });
 
         if (!response) {
           return {
@@ -53,10 +49,13 @@ const mutationCharacterRolvers: IResolvers = {
           changeVotes: await getCharacters(),
         });
 
+        context.pubsub.publish(CHANGE_VOTE, {
+          changeVote: await getCharacter(args.character),
+        });
         return {
           status: true,
           message: "Se ha agregado el voto con éxito",
-          characters: [await getCharacter(args.character )], // meter en un array el resultado de una consulta
+          characters: [await getCharacter(args.character)], // meter en un array el resultado de una consulta
         };
       } catch (error) {
         return {
@@ -68,10 +67,10 @@ const mutationCharacterRolvers: IResolvers = {
     updateVote: async (
       _: void,
       args: { character: string; idVote: string },
-      context: {  }
+      context: { pubsub: PubSub }
     ) => {
       try {
-        const characterExists = await getCharacter(args.character );
+        const characterExists = await getCharacter(args.character);
 
         if (!characterExists) {
           return {
@@ -91,10 +90,7 @@ const mutationCharacterRolvers: IResolvers = {
 
         // actualizar el voto
 
-        const { modifiedCount } = await updateVote(
-          args.idVote,
-          args.character
-        );
+        const { modifiedCount } = await updateVote(args.idVote, args.character);
 
         if (modifiedCount === 0) {
           return {
@@ -102,6 +98,14 @@ const mutationCharacterRolvers: IResolvers = {
             message: "No se pudo actualizar el voto",
           };
         } else {
+          context.pubsub.publish(CHANGE_VOTES, {
+            changeVotes: await getCharacters(),
+          });
+
+          context.pubsub.publish(CHANGE_VOTE, {
+            changeVote: await getCharacter(args.character),
+          });
+
           return {
             status: true,
             message: "Voto actualizado con éxito",
@@ -116,7 +120,11 @@ const mutationCharacterRolvers: IResolvers = {
       }
     },
 
-    deleteVote: async (_: void, args: { id: string }, context: { }) => {
+    deleteVote: async (
+      _: void,
+      args: { id: string },
+      context: { pubsub: PubSub }
+    ) => {
       try {
         const voteExists = await getVote(args.id);
 
@@ -135,6 +143,10 @@ const mutationCharacterRolvers: IResolvers = {
             message: "No se pudo eliminar el voto",
           };
         } else {
+          context.pubsub.publish(CHANGE_VOTES, {
+            changeVotes: await getCharacters(),
+          });
+
           return {
             status: true,
             message: "Voto eliminado con éxito",

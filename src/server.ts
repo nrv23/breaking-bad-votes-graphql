@@ -1,9 +1,9 @@
-import { makeExecutableSchema } from '@graphql-tools/schema';
+import { makeExecutableSchema } from "@graphql-tools/schema";
 import { IResolvers } from "@graphql-tools/utils";
 import { ApolloServer } from "apollo-server-express";
 import compression from "compression";
 import express, { Application } from "express"; //es el tipo de aplicacion para express
-import { PubSub } from "graphql-subscriptions";
+import { PubSub, withFilter } from "graphql-subscriptions";
 import { GraphQLSchema } from "graphql";
 import { Server, createServer } from "http";
 // configurar la profundidad de las consultas en graphql para evitar consultas maliciosas o que boten el servidor
@@ -15,8 +15,8 @@ import { WebSocketServer } from "ws";
 // work with commonjs and esm
 import { useServer } from "graphql-ws/lib/use/ws";
 import { ApolloServerPluginDrainHttpServer } from "apollo-server-core";
-import { CHANGE_VOTES, PHOTO_URL } from "./config/constants";
-import * as obj from './schema';
+import { CHANGE_VOTE, CHANGE_VOTES, PHOTO_URL } from "./config/constants";
+import * as obj from "./schema";
 import {
   addVote,
   deleteVote,
@@ -44,7 +44,10 @@ class GraphQLServer {
       // si el valor esqyema esta indefinido
       throw new Error("EL valor del schema de graphql es un valor requerido");
     }
-    this.schema = makeExecutableSchema({typeDefs: obj.default.typeDefs, resolvers: this.loadResolversSchema()});
+    this.schema = makeExecutableSchema({
+      typeDefs: obj.default.typeDefs,
+      resolvers: this.loadResolversSchema(),
+    });
     this.init();
   }
 
@@ -72,10 +75,8 @@ class GraphQLServer {
 
   private async configApolloServerExpress() {
     try {
-
       const context: any = async () => {
         return {
-  
           pubsub: this.pubsub,
         };
       };
@@ -156,16 +157,15 @@ class GraphQLServer {
   }
 
   private loadResolversSchema = () => {
+
+    
+
     const resolvers: IResolvers = {
       Query: {
-        character: async (
-          _: void,
-          args: { id: String },
-          context: {}
-        ) => {
+        character: async (_: void, args: { id: String }, context: {}) => {
           return await getCharacter(args.id);
         },
-        characters: async (_: void, __: unknown, context: {  }) => {
+        characters: async (_: void, __: unknown, context: {}) => {
           return await getCharacters();
         },
       },
@@ -173,7 +173,7 @@ class GraphQLServer {
         addVote: async (
           _: void,
           args: { character: string },
-          context: {  pubsub: PubSub }
+          context: { pubsub: PubSub }
         ) => {
           try {
             const exist = await getCharacter(args.character);
@@ -186,14 +186,12 @@ class GraphQLServer {
             }
 
             const [index] = await getLastInsertId();
-
-            const response = await addVote(
-              {
-                character: args.character,
-                id: !index.id ? "1" : (+index.id + 1).toString(),
-                createdAt: new Datetime().getCurrentDateTime(),
-              }
-            );
+            const id = !index.id ? "1" : (+index.id + 1).toString();
+            const response = await addVote({
+              character: args.character,
+              id,
+              createdAt: new Datetime().getCurrentDateTime(),
+            });
 
             if (!response) {
               return {
@@ -204,6 +202,10 @@ class GraphQLServer {
 
             context.pubsub.publish(CHANGE_VOTES, {
               changeVotes: await getCharacters(),
+            });
+
+            context.pubsub.publish(CHANGE_VOTE, {
+              changeVote: await getCharacter(args.character),
             });
 
             return {
@@ -222,13 +224,10 @@ class GraphQLServer {
         updateVote: async (
           _: void,
           args: { character: string; idVote: string },
-          context: {}
+          context: { pubsub: PubSub }
         ) => {
           try {
-            const characterExists = await getCharacter(
-              args.character,
-             
-            );
+            const characterExists = await getCharacter(args.character);
 
             if (!characterExists) {
               return {
@@ -259,6 +258,14 @@ class GraphQLServer {
                 message: "No se pudo actualizar el voto",
               };
             } else {
+              context.pubsub.publish(CHANGE_VOTES, {
+                changeVotes: await getCharacters(),
+              });
+
+              context.pubsub.publish(CHANGE_VOTE, {
+                changeVote: await getCharacter(args.character),
+              });
+
               return {
                 status: true,
                 message: "Voto actualizado con éxito",
@@ -276,7 +283,7 @@ class GraphQLServer {
         deleteVote: async (
           _: void,
           args: { id: string },
-          context: {  }
+          context: { pubsub: PubSub }
         ) => {
           try {
             const voteExists = await getVote(args.id);
@@ -296,6 +303,10 @@ class GraphQLServer {
                 message: "No se pudo eliminar el voto",
               };
             } else {
+              context.pubsub.publish(CHANGE_VOTES, {
+                changeVotes: await getCharacters(),
+              });
+
               return {
                 status: true,
                 message: "Voto eliminado con éxito",
@@ -318,13 +329,21 @@ class GraphQLServer {
             return this.pubsub.asyncIterator(CHANGE_VOTES);
           },
         },
+        changeVote: {
+          subscribe: withFilter(
+            (_: void, __: unknown) => this.pubsub.asyncIterator(CHANGE_VOTE),
+            (payload:{ changeVote: {id: string|number} }, variables: { id: string | number}) => {
+              console.log({payload});
+              console.log({variables});
+              return payload.changeVote.id === variables.id;
+            }
+          ),
+        },
       },
       Character: {
         // esto va leer la respuesta que sea de tipo Character y añadirle a la propiedad votes un valor
         // los types podrian funcionar como un interceptor.
-        votes: async (parent: Character, __: unknown, context: {  }) => {
-          
-
+        votes: async (parent: Character, __: unknown, context: {}) => {
           return await getCharacterVotes(parent.id);
         },
         photo: (parent: Character) => PHOTO_URL.concat(parent.photo),

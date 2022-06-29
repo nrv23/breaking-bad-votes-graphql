@@ -13,3 +13,4 @@ export const COLLECTIONS = {
 
 export const PHOTO_URL = 'https://raw.githubusercontent.com/graphql-course/5-breaking-bad-graphql-voting/master/photos/';
 export const CHANGE_VOTES = "changeVotes";
+export const CHANGE_VOTE = "changeVote";
